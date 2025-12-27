@@ -30,22 +30,57 @@ private func processJobSummary(description: String)-> String {
 
 @Model
 final class Jobs {
-    var companyName: String
-    var jobName: String
-    var applicationSite: String
+    var companyName: String = ""
+    var jobName: String = ""
+    var applicationSite: String = ""
     var isCoverLetter: Bool = false
-    var jobDescription: String
+    var jobDescription: String = ""
+    var location: String = ""
     var summary: String = ""
+    var resumeData: Data? = nil
+    var coverLetterData: Data? = nil
+    var date: Date = Date.now
+    var status: String = "Applied"
+    var interviewDate: Date = Date()
+    var extraInfo: String = ""
     
     
-    init(companyName: String, jobName: String, site: String, jobDescription: String, isCoverLetter: Bool){
+    init(companyName: String, jobName: String, site: String, jobDescription: String, location: String, extraInfo: String, isCoverLetter: Bool){
         print("HERE")
         self.companyName = companyName
         self.jobName = jobName
         self.applicationSite = site
         self.jobDescription = jobDescription
         self.isCoverLetter = isCoverLetter
+        self.location = location
+        self.resumeData = nil
+        self.coverLetterData = nil
+        self.extraInfo = extraInfo
     }
+    
+    #if os(macOS)
+    func addResumeData(){
+        var homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+        let resumeURL = homeDirectory.appendingPathComponent("Documents/Job Applications/Mamoon Akhtar Resume.pdf")
+        do{
+            let data = try Data(contentsOf: resumeURL)
+            self.resumeData = data
+        } catch{
+            self.resumeData = nil
+        }
+        
+        homeDirectory = FileManager.default.homeDirectoryForCurrentUser
+        if isCoverLetter{
+            let coverURL = homeDirectory.appendingPathComponent("Documents/Job Applications/Mamoon Akhtar Cover Letter.pdf")
+            do{
+                let data = try Data(contentsOf: coverURL)
+                self.coverLetterData = data
+            } catch{
+                self.coverLetterData = nil
+            }
+        }
+    }
+    #endif
 }
 
 
@@ -78,7 +113,8 @@ struct AIService {
         let session = LanguageModelSession()
         
         // Use 'respond(to:)' which is the correct throwing async method
-        let response = try await session.respond(to: "Summarize this job description in one sentence: \(text)")
+        let prompt = "Summarize the job description in maximum of 2 sentences. Focus on the requirements they are asking for: \(text)"
+        let response = try await session.respond(to: prompt)
         
         // Access the generated string via the 'content' property
         return response.content

@@ -1,6 +1,7 @@
 {
   "images" : [
     {
+      "filename" : "unnamed-2.jpg",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -48,31 +49,37 @@
       "size" : "32x32"
     },
     {
+      "filename" : "unnamed-2-4.jpg",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "128x128"
     },
     {
+      "filename" : "unnamed-2-3 1.jpg",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
+      "filename" : "unnamed-2-3.jpg",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
+      "filename" : "unnamed-2-2.jpg",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
+      "filename" : "unnamed-2-2 1.jpg",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
+      "filename" : "unnamed-2 1.jpg",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"

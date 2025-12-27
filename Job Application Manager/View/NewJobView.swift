@@ -15,6 +15,9 @@ struct NewJobView: View {
     @State private var siteURL: String = ""
     @State private var isCoverLetter: Bool = false
     @State private var jobDescription: String = ""
+    @State private var location: String = ""
+    @State private var extraInfo: String = ""
+    
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -25,14 +28,16 @@ struct NewJobView: View {
                 Section {
                     rowInput("Company", text: $companyName)
                     rowInput("Job Title", text: $jobName)
+                    rowInput("Job Location", text: $location)
                     rowInput("Site URL", text: $siteURL)
+                    rowInput("Extra Info", text: $extraInfo)
                 }
 
                 Section {
                     Toggle("Included Cover Letter", isOn: $isCoverLetter)
                 }
 
-                Section("Job Description") {
+                Section {
                     descriptionEditor
                 }
             }
@@ -48,7 +53,8 @@ struct NewJobView: View {
                         .foregroundStyle(.blue)
                 }
             }
-        }
+            .lineSpacing(3)
+        }.padding()
     }
 
     // MARK: - Separated UI Components
@@ -87,13 +93,23 @@ struct NewJobView: View {
             jobName: jobName,
             site: siteURL,
             jobDescription: jobDescription,
+            location: location,
+            extraInfo: extraInfo,
             isCoverLetter: isCoverLetter
         )
+        
+        #if os(macOS)
+        newJob.addResumeData()
+        #endif
         
         // 2. Insert into Context
         modelContext.insert(newJob)
         Task {
             await generateSummary(for: newJob)
+            #if os(macOS)
+            do {
+                try await runSaveScript(company: companyName, jobTitle: jobName, site: siteURL, location: location, coverLetter: isCoverLetter, summary: newJob.summary, extraInfo: extraInfo)
+            }#endif
         }
         
         // 3. Dismiss

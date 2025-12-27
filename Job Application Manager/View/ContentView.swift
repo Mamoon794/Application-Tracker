@@ -19,39 +19,84 @@ extension Color {
   }
 
 struct ContentView: View {
-    @Query(sort: \Jobs.companyName) private var allJobs: [Jobs]
+    @Query(sort: \Jobs.date, order: .reverse) private var allJobs: [Jobs]
         @Environment(\.modelContext) private var modelContext
     @State private var selectedFilter: Filter = .all
     @State private var showingAddJob = false
+    
+    func getColor(job: Jobs) -> Color {
+        if job.status == "Applied" {
+            return .blue
+        }
+        else if job.status == "Interviewing"{
+            return .yellow
+        }
+        else if job.status == "Offered"{
+            return .green
+        }
+        return .red
+    }
 
     enum Filter: String, CaseIterable, Identifiable {
         case all = "All", applied = "Applied", interviewing = "Interviewing", offered = "Offered", rejected = "Rejected"
         var id: String { rawValue }
     }
+    
+    var filteredJobs: [Jobs] {
+        if selectedFilter == .all {
+            return allJobs
+        } else {
+            // Match the job status string with the filter rawValue
+            return allJobs.filter { $0.status == selectedFilter.rawValue }
+        }
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            
-            List {
-                ForEach(allJobs, id: \.jobName) { job in
-                    jobRow(job)
+        NavigationStack {
+            VStack(spacing: 0) {
+                topBar
+                ScrollView {
+                    LazyVStack(spacing: 5) {
+                        ForEach(filteredJobs) { job in
+                            NavigationLink(destination: JobDetailView(job: job)) {
+                                jobRow(job)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .contextMenu {
+                                Button(role: .destructive) { deleteJob(job) } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                    .padding()
                 }
             }
-            .listStyle(.inset) // Standard Mac list appearance
+            .frame(minWidth: 600, minHeight: 450)
+            .background(bodyBackgroundColor.opacity(0.5)) // Subtle Mac background
+            .sheet(isPresented: $showingAddJob) {
+                NewJobView()
+            }
         }
-        .frame(minWidth: 500, minHeight: 400)
-        .sheet(isPresented: $showingAddJob) {
-            NewJobView() // Your previous view
-        }
+    }
+    
+    private func deleteJob(_ job: Jobs){
+        modelContext.delete(job)
     }
 
     // MARK: - Components
 
     private var topBar: some View {
         HStack(spacing: 12) {
-            Text("Jobs")
-                .font(.headline)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Jobs")
+                    .font(.headline)
+                // The dynamic count label
+                Text("\(selectedFilter.rawValue): \(filteredJobs.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .fixedSize()
             Spacer()
             Picker("Filter", selection: $selectedFilter) {
                 ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }
@@ -66,32 +111,88 @@ struct ContentView: View {
         }
         .padding()
         .background(.thinMaterial)
+        
     }
-
+    
     private func jobRow(_ job: Jobs) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(job.jobName)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(job.companyName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        let statusColor = getColor(job: job)
+        return HStack(spacing: 16) {
+            // Icon Circle (similar to your image)
+            ZStack {
+                Circle()
+                    .fill(statusColor.opacity(0.1))
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: "briefcase.fill")
+                    .foregroundStyle(statusColor)
+                    .font(.system(size: 18))
             }
             
-            if !job.summary.isEmpty {
-                Text(job.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack{
+                    Text(job.companyName)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text(job.location)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                HStack{
+                    Text(job.jobName)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    if job.status == "Interviewing"{
+                        Text(formattedInterviewDate(for: job))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
+                if !job.summary.isEmpty {
+                    Text(job.summary)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(3)
+                        .padding(.top, 2)
+                }
             }
+            
+            Spacer()
+            
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.quaternary)
         }
+        .padding()
+        // The "Card" styling
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(bodyBackgroundColor) // Adapts to Mac Dark/Light mode
+                .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+        .padding(.horizontal, 4)
         .padding(.vertical, 4)
     }
 
     // MARK: - Actions
 
+    // MARK: - Helpers
+    private func formattedInterviewDate(for job: Jobs) -> String {
+        // Safely format a Date to a short, user-friendly string
+        // Adjust the formatter as needed for your locale/style
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: job.interviewDate)
+    }
+    
     private func addJob() {
         showingAddJob = true
     }
