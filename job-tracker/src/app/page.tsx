@@ -1,26 +1,32 @@
-"use client";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import axios from "axios";
-
 export default function Home() {
-  const [message, setMessage] = useState("Loading...");
-
-  useEffect(() => {
-    getExample().then((data) => setMessage(data));
-  }, []);
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <div>
-        <h1 className="text-4xl">Job Tracking Application</h1>
-        <p>{message}</p>
-      </div>
-    </div>
-  );
-}
+    <main style={{ padding: "40px", maxWidth: "800px", margin: "0 auto" }}>
+      <h1>Job Tracker</h1>
+      <p>Keep track of your job applications.</p>
 
-async function getExample(){
-  const data = await axios.get("http://localhost:3000/api/example");
-  return data.data;
+      <button
+        style={{
+          marginTop: "10px",
+          padding: "10px 14px",
+          borderRadius: "6px",
+          border: "none",
+          background: "black",
+          color: "white",
+          cursor: "pointer"
+        }}
+      >
+        Add Application
+      </button>
+
+      <hr style={{ margin: "20px 0" }} />
+
+      <h2>Applications</h2>
+
+      <ul>
+        <li>Google — Frontend Engineer — Interviewing</li>
+        <li>Meta — Product Designer — Applied</li>
+        <li>Amazon — SDE II — Rejected</li>
+      </ul>
+    </main>
+  );
 }
