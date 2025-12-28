@@ -11,6 +11,8 @@ export default function Home() {
     { id: 4, company: 'RBC', position: 'Senior React Dev', status: 'Rejected', date: '2025-10-25' },
   ]
 
+  const totalApplied = jobs.length;
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto bg-white">
@@ -21,7 +23,7 @@ export default function Home() {
 
         {/* Status Card */}
         <div>
-          <JobStatusCard title="Total Applied" value="42" icon={<Briefcase />} color="blue" />
+          <JobStatusCard title="Total Applied" value={totalApplied} icon={<Briefcase />} color="blue"/>
         </div>
 
         {/* Search Bar */}
@@ -47,7 +49,7 @@ export default function Home() {
   It takes in an icon to display on the very left of the card
   It takes in a color to change the color of the icon background. It can be blue, yellow, or green.
 */
-function JobStatusCard({title, value, icon, color}: {title: string, value: string, icon: React.ReactNode, color: "blue" | "yellow" | "green"}) {
+function JobStatusCard({title, value, icon, color}: {title: string, value: string | number, icon: React.ReactNode, color: "blue" | "yellow" | "green"}) {
   const colors = {
     "blue": 'text-blue-600 bg-blue-100',
     "yellow": 'text-yellow-600 bg-yellow-100',
