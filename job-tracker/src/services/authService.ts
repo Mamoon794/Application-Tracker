@@ -4,6 +4,7 @@ export const authService = {
   async signInWithGoogle() {
     const supabase = await createClient();
 
+    // TODO: add client ID and secret to supabase from google cloud console
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
