@@ -1,5 +1,6 @@
 export interface Status {
   id: string;
+  user_id: string;
   name: string;
   color: string;
   is_default: boolean;
@@ -28,6 +29,7 @@ export interface Attachment {
 
 export interface Application {
   id: string;
+  user_id: string;
   company: string;
   role: string;
   status_id: string;
