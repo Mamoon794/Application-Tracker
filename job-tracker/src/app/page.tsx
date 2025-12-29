@@ -12,6 +12,9 @@ export default function Home() {
   ]
 
   const totalApplied = jobs.length;
+  const inProgress = jobs.filter(job => job.status !== "Rejected").length;
+  const offers = jobs.filter(job => job.status === "Offer").length;
+
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 p-4 md:p-8">
@@ -24,6 +27,8 @@ export default function Home() {
         {/* Status Card */}
         <div>
           <JobStatusCard title="Total Applied" value={totalApplied} icon={<Briefcase />} color="blue"/>
+          <JobStatusCard title="In Progress" value={inProgress} icon={<Briefcase />} color="yellow" />
+          <JobStatusCard title="Offers" value={offers} icon={<Briefcase />} color="green"/>
         </div>
 
         {/* Search Bar */}
