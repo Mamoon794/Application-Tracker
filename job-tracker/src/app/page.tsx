@@ -14,6 +14,15 @@ export default function Home() {
   const totalApplied = jobs.length;
   const inProgress = jobs.filter(job => job.status !== "Rejected").length;
   const offers = jobs.filter(job => job.status === "Offer").length;
+  const [searchText, setSearchText] = useState("");
+  const filteredJobs = jobs.filter((job) => {
+  const text = searchText.toLowerCase().trim();
+  if (!text) return true; return (  //if search is empty return all
+    job.company.toLowerCase().includes(text) ||
+    job.position.toLowerCase().includes(text)
+  );
+});
+
 
 
   return (
@@ -25,21 +34,45 @@ export default function Home() {
         </header>
 
         {/* Status Card */}
-        <div>
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <JobStatusCard title="Total Applied" value={totalApplied} icon={<Briefcase />} color="blue"/>
-          <JobStatusCard title="In Progress" value={inProgress} icon={<Briefcase />} color="yellow" />
+          <JobStatusCard title="In Progress" value={inProgress} icon={<Briefcase />} color="yellow"/>
           <JobStatusCard title="Offers" value={offers} icon={<Briefcase />} color="green"/>
         </div>
 
         {/* Search Bar */}
-        <div>
-
+        <div className="mb-4 flex items-center gap-3">
+          <input type="text" placeholder="Search by company or position..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="w-full max-w-md rounded-full border border-zinc-300 px-4 py-2 text-sm"/>
+          <select className="rounded-full border border-zinc-300 px-3 py-2 text-sm bg-white">
+            <option value="">All Statuses</option>
+            <option value="Applied">Applied</option>
+            <option value="Interviewing">Interviewing</option>
+            <option value="Offer">Offer</option>
+            <option value="Rejected">Rejected</option>
+          </select>
         </div>
 
         {/* Job Tracking Table */}
-        <div>
-          
-        </div>
+        <div className="space-y-2">
+            {filteredJobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium">{job.company}</p>
+                  <p className="text-xs text-zinc-500">{job.position}</p>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-zinc-500">{job.date}</span>
+                  <span className="text-xs rounded-full bg-zinc-100 px-3 py-1">
+                    {job.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
       </div>
     </div>
   );
