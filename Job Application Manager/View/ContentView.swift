@@ -23,6 +23,7 @@ struct ContentView: View {
         @Environment(\.modelContext) private var modelContext
     @State private var selectedFilter: Filter = .all
     @State private var showingAddJob = false
+    @State private var searchText: String = ""
     
     func getColor(job: Jobs) -> Color {
         if job.status == "Applied" {
@@ -43,29 +44,49 @@ struct ContentView: View {
     }
     
     var filteredJobs: [Jobs] {
-        if selectedFilter == .all {
-            return allJobs
-        } else {
-            // Match the job status string with the filter rawValue
-            return allJobs.filter { $0.status == selectedFilter.rawValue }
+      let base = (selectedFilter == .all) ? allJobs : allJobs.filter { $0.status == selectedFilter.rawValue }
+      let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !trimmed.isEmpty else { return base }
+      return base.filter { job in
+          job.companyName.localizedCaseInsensitiveContains(trimmed) ||
+          job.jobName.localizedCaseInsensitiveContains(trimmed) ||
+          job.location.localizedCaseInsensitiveContains(trimmed)
+      }
+    }
+    
+    private var groupedJobs: [(Date, [Jobs])] {
+        // Group jobs by the "start of day" to ignore time differences
+        let dictionary = Dictionary(grouping: filteredJobs) { job in
+            Calendar.current.startOfDay(for: job.date)
         }
+        // Sort the dates descending
+        return dictionary.sorted { $0.key > $1.key }
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 topBar
+                searchBar
+                
+                
                 ScrollView {
-                    LazyVStack(spacing: 5) {
-                        ForEach(filteredJobs) { job in
-                            NavigationLink(destination: JobDetailView(job: job)) {
-                                jobRow(job)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .contextMenu {
-                                Button(role: .destructive) { deleteJob(job) } label: {
-                                    Label("Delete", systemImage: "trash")
+                    LazyVStack(spacing: 5, pinnedViews: [.sectionHeaders]) {
+                        ForEach(groupedJobs, id: \.0) { date, jobs in
+                            Section {
+                                ForEach(jobs) { job in
+                                    NavigationLink(destination: JobDetailView(job: job)) {
+                                        jobRow(job)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .contextMenu {
+                                        Button(role: .destructive) { deleteJob(job) } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                                 }
+                            } header: {
+                                headerView(for: date, count: jobs.count)
                             }
                         }
                     }
@@ -77,6 +98,10 @@ struct ContentView: View {
             .sheet(isPresented: $showingAddJob) {
                 NewJobView()
             }
+        }
+        .onAppear {
+            print("The path")
+            print(FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?.path ?? "")
         }
     }
     
@@ -112,6 +137,35 @@ struct ContentView: View {
         .padding()
         .background(.thinMaterial)
         
+    }
+    
+    private var searchBar: some View{
+        HStack {
+              Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+              TextField("Search company, title, or location", text: $searchText)
+                  .textFieldStyle(.plain)
+          }
+          .padding(.horizontal)
+          .padding(.vertical, 8)
+          .background(
+              RoundedRectangle(cornerRadius: 10, style: .continuous)
+                  .fill(Color.primary.opacity(0.05))
+          )
+          .padding([.horizontal, .top])
+    }
+    
+    private func headerView(for date: Date, count: Int) -> some View {
+        HStack {
+            Text("Applied on \(date, format: .dateTime.month().day().year())")
+                .font(.subheadline.bold())
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text("\(count)")
+                .font(.subheadline.bold())
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(bodyBackgroundColor.opacity(0.9)) // Solidifies header when pinned
     }
     
     private func jobRow(_ job: Jobs) -> some View {

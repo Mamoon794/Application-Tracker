@@ -31,6 +31,21 @@ func runSaveScript(company: String, jobTitle: String, site: String, location: St
     }
 }
 
+func runChangeStatusScript(company: String, jobTitle: String, location: String, oldStatus: String, newStatus: String) async throws{
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/bin/bash")
+    let scriptPath = "/Users/primus/Documents/Job Applications/updateStatus"
+    
+    process.arguments = [scriptPath, company, jobTitle, location, oldStatus, newStatus]
+    
+    do {
+        try process.run()
+    } catch {
+        print("Failed to run bash script: \(error)")
+    }
+    
+}
+
 #endif
 
 
@@ -49,4 +64,16 @@ var cardBackground: Color {
     // This provides a clean, elevated look on iOS similar to Mac controls
     return Color(uiColor: .secondarySystemGroupedBackground)
     #endif
+}
+
+
+func getDatabaseURL() -> URL {
+    let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    // Create a folder named after your app
+    let appDirectory = appSupport.appendingPathComponent("JobApplicationManager")
+    
+    // Ensure the folder actually exists on the disk
+    try? FileManager.default.createDirectory(at: appDirectory, withIntermediateDirectories: true)
+    
+    return appDirectory.appendingPathComponent("default.store")
 }

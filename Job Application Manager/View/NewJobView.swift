@@ -17,6 +17,7 @@ struct NewJobView: View {
     @State private var jobDescription: String = ""
     @State private var location: String = ""
     @State private var extraInfo: String = ""
+    @State private var fakePhone = false
     
     
     @Environment(\.modelContext) private var modelContext
@@ -35,6 +36,7 @@ struct NewJobView: View {
 
                 Section {
                     Toggle("Included Cover Letter", isOn: $isCoverLetter)
+                    Toggle("Gave Fake Phone", isOn: $fakePhone)
                 }
 
                 Section {
@@ -88,6 +90,9 @@ struct NewJobView: View {
 
     private func save() {
         // 1. Initialize the SwiftData Model
+        if fakePhone{
+            extraInfo = "\(extraInfo) | Fake Phone"
+        }
         let newJob = Jobs(
             companyName: companyName,
             jobName: jobName,
@@ -95,7 +100,8 @@ struct NewJobView: View {
             jobDescription: jobDescription,
             location: location,
             extraInfo: extraInfo,
-            isCoverLetter: isCoverLetter
+            isCoverLetter: isCoverLetter,
+            fakePhone: fakePhone
         )
         
         #if os(macOS)

@@ -65,6 +65,15 @@ struct JobDetailView: View {
                     }
                     .pickerStyle(.menu)
                     .frame(width: 200)
+                    .onChange(of: job.status) { oldValue, newValue in
+                        Task {
+                            #if os(macOS)
+                            do {
+                                try await runChangeStatusScript(company: job.companyName, jobTitle: job.jobName, location: job.location,  oldStatus: oldValue, newStatus: newValue)
+                            }#endif
+                            
+                        }
+                    }
 
                     // Only show if the status is "Interviewing"
                     if job.status == "Interviewing" {
@@ -95,13 +104,20 @@ struct JobDetailView: View {
             Text("Edit Position Info").font(.headline)
             
             Group {
-                TextField("Company", text: $job.companyName)
-                TextField("Job Title", text: $job.jobName)
-                TextField("Location", text: $job.location)
-                TextField("Site URL", text: $job.applicationSite)
-                TextField("Extra Info", text: $job.extraInfo)
+                VStack(alignment: .leading, spacing: 12) {
+                    TextField("Company", text: $job.companyName)
+                    TextField("Job Title", text: $job.jobName)
+                    TextField("Location", text: $job.location)
+                    TextField("Site URL", text: $job.applicationSite)
+                    TextField("Extra Info", text: $job.extraInfo)
+                }
+                .textFieldStyle(.roundedBorder)
+
+                DatePicker("Application Date", selection: $job.date, displayedComponents: [.date])
+
+                Toggle("Included Cover Letter", isOn: $job.isCoverLetter)
+                Toggle("Gave Fake Phone", isOn: $job.fakePhone)
             }
-            .textFieldStyle(.roundedBorder)
             
             Divider().padding(.vertical, 8)
             
@@ -268,20 +284,6 @@ struct JobDetailView: View {
 
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Job Description")
-                .font(.headline)
-            
-            Text(job.jobDescription)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .lineSpacing(6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(cardBackground)
-                )
-            
             Text("Extra Info").font(.headline)
             Text(job.extraInfo)
                 .font(.body)
@@ -293,10 +295,49 @@ struct JobDetailView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(cardBackground)
                 )
+            
+            Text("Job Description")
+                .font(.headline)
+            
+            ZStack(alignment: .topTrailing) {
+
+                // Description Text
+                Text(job.jobDescription)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Button {
+                    copyToClipboard(job.jobDescription)
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .padding(.bottom, 4)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(cardBackground)
+            )
+            
+            
         }
     }
 
     // MARK: - Action Functions
+    
+    private func copyToClipboard(_ text: String) {
+        #if os(macOS)
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        #else
+        UIPasteboard.general.string = text
+        #endif
+    }
 
     private func openLink(_ url: URL) {
         #if os(macOS)
@@ -306,3 +347,4 @@ struct JobDetailView: View {
         #endif
     }
 }
+

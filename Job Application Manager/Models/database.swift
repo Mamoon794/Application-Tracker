@@ -43,9 +43,10 @@ final class Jobs {
     var status: String = "Applied"
     var interviewDate: Date = Date()
     var extraInfo: String = ""
+    var fakePhone: Bool = false
     
     
-    init(companyName: String, jobName: String, site: String, jobDescription: String, location: String, extraInfo: String, isCoverLetter: Bool){
+    init(companyName: String, jobName: String, site: String, jobDescription: String, location: String, extraInfo: String, isCoverLetter: Bool, fakePhone: Bool){
         print("HERE")
         self.companyName = companyName
         self.jobName = jobName
@@ -56,6 +57,7 @@ final class Jobs {
         self.resumeData = nil
         self.coverLetterData = nil
         self.extraInfo = extraInfo
+        self.fakePhone = fakePhone
     }
     
     #if os(macOS)
