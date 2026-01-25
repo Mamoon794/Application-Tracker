@@ -11,7 +11,7 @@ import SwiftData
 @main
 struct Job_Application_ManagerApp: App {
     var sharedModelContainer: ModelContainer = {
-            let schema = Schema([Jobs.self])
+        let schema = Schema([Jobs.self, InterviewNote.self, InterviewQuestion.self])
             
             let modelConfiguration = ModelConfiguration(url: getDatabaseURL())
 

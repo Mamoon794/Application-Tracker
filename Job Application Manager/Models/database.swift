@@ -45,6 +45,12 @@ final class Jobs {
     var extraInfo: String = ""
     var fakePhone: Bool = false
     
+    @Relationship(deleteRule: .cascade, inverse: \InterviewQuestion.job)
+        var questions: [InterviewQuestion]? = []
+
+        @Relationship(deleteRule: .cascade, inverse: \InterviewNote.job)
+        var notes: [InterviewNote]? = []
+    
     
     init(companyName: String, jobName: String, site: String, jobDescription: String, location: String, extraInfo: String, isCoverLetter: Bool, fakePhone: Bool){
         print("HERE")
@@ -85,6 +91,29 @@ final class Jobs {
     #endif
 }
 
+@Model
+final class InterviewQuestion {
+    var question: String = ""
+    var answer: String = ""
+    var date: Date = Date.now
+    var job: Jobs?
+
+    init(question: String, answer: String) {
+        self.question = question
+        self.answer = answer
+    }
+}
+
+@Model
+final class InterviewNote {
+    var content: String = ""
+    var date: Date = Date.now
+    var job: Jobs?
+
+    init(content: String) {
+        self.content = content
+    }
+}
 
 @MainActor
 func generateSummary(for job: Jobs) async {

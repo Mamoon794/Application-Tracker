@@ -67,14 +67,14 @@ struct JobDetailView: View {
                     .frame(width: 200)
                     .onChange(of: job.status) { oldValue, newValue in
                         Task {
-                            #if os(macOS)
+#if os(macOS)
                             do {
                                 try await runChangeStatusScript(company: job.companyName, jobTitle: job.jobName, location: job.location,  oldStatus: oldValue, newStatus: newValue)
                             }#endif
                             
                         }
                     }
-
+                    
                     // Only show if the status is "Interviewing"
                     if job.status == "Interviewing" {
                         DatePicker("Interview Time:", selection: $job.interviewDate)
@@ -84,6 +84,11 @@ struct JobDetailView: View {
                 .padding()
                 .background(cardBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            
+            if (job.status == "Interviewing") || (job.questions?.count ?? 0) > 0 || (job.notes?.count ?? 0) > 0 {
+                interviewPrepLink
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
             
             if job.resumeData != nil {
@@ -182,6 +187,47 @@ struct JobDetailView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+    
+    private var interviewPrepLink: some View {
+        NavigationLink {
+            InterviewPrepView(job: job) // Navigates to the new view
+        } label: {
+            HStack(spacing: 15) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Interview Preparation")
+                        .font(.headline)
+                    Text("Manage questions, answers, and prep notes")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                // Show counts for quick reference
+                HStack(spacing: 10) {
+                    let qCount = job.questions?.count ?? 0
+                    if qCount > 0 {
+                        Label("\(qCount)", systemImage: "questionmark.circle.fill")
+                    }
+                    let nCount = job.notes?.count ?? 0
+                    if nCount > 0 {
+                        Label("\(nCount)", systemImage: "note.text")
+                    }
+                    Image(systemName: "chevron.right")
+                }
+                .font(.caption2)
+                .foregroundStyle(.purple)
+            }
+            .padding()
+            .background(Color.purple.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.purple.opacity(0.1), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Logic Functions
@@ -296,18 +342,10 @@ struct JobDetailView: View {
                         .fill(cardBackground)
                 )
             
-            Text("Job Description")
-                .font(.headline)
-            
-            ZStack(alignment: .topTrailing) {
-
-                // Description Text
-                Text(job.jobDescription)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .lineSpacing(6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
+            HStack {
+                Text("Job Description")
+                    .font(.headline)
+                Spacer()
                 Button {
                     copyToClipboard(job.jobDescription)
                 } label: {
@@ -315,7 +353,20 @@ struct JobDetailView: View {
                         .font(.caption)
                 }
                 .buttonStyle(.borderless)
-                .padding(.bottom, 4)
+            }
+      
+            
+           
+            
+            VStack(alignment: .leading) {
+                
+                // Description Text
+                Text(job.jobDescription)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
             }
             .padding()
             .background(
