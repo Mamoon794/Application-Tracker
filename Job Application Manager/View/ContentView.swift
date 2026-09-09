@@ -11,12 +11,19 @@ import SwiftData
 
 
 extension Color {
-      static let emerald400 = Color(red: 0.06, green: 0.78, blue: 0.53) // example values
-      static let emerald500 = Color(red: 0.00, green: 0.70, blue: 0.50)
-      static let slate400   = Color(red: 0.56, green: 0.60, blue: 0.67)
-      static let slate800   = Color(red: 0.12, green: 0.14, blue: 0.18)
-      static let slate300   = Color(red: 0.69, green: 0.73, blue: 0.78)
-  }
+    static let emerald400 = Color(red: 0.06, green: 0.78, blue: 0.53) // example values
+    static let emerald500 = Color(red: 0.00, green: 0.70, blue: 0.50)
+    static let slate400   = Color(red: 0.56, green: 0.60, blue: 0.67)
+    static let slate800   = Color(red: 0.12, green: 0.14, blue: 0.18)
+    static let slate300   = Color(red: 0.69, green: 0.73, blue: 0.78)
+}
+
+enum SearchScope: String, CaseIterable, Identifiable {
+    case general = "General (Name/Location)"
+    case description = "Job Description"
+    case extraInfo = "Extra Info"
+    var id: String { rawValue }
+}
 
 struct ContentView: View {
     @Query(sort: \Jobs.date, order: .reverse) private var allJobs: [Jobs]
@@ -24,6 +31,11 @@ struct ContentView: View {
     @State private var selectedFilter: Filter = .all
     @State private var showingAddJob = false
     @State private var searchText: String = ""
+    
+    @State private var requireCoverLetter: Bool = false
+    @State private var searchScope: SearchScope = .general
+    @State private var isPinnedExpanded: Bool = false
+    
     
     func getColor(job: Jobs) -> Color {
         if job.status == "Applied" {
@@ -44,14 +56,32 @@ struct ContentView: View {
     }
     
     var filteredJobs: [Jobs] {
-      let base = (selectedFilter == .all) ? allJobs : allJobs.filter { $0.status == selectedFilter.rawValue }
-      let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-      guard !trimmed.isEmpty else { return base }
-      return base.filter { job in
-          job.companyName.localizedCaseInsensitiveContains(trimmed) ||
-          job.jobName.localizedCaseInsensitiveContains(trimmed) ||
-          job.location.localizedCaseInsensitiveContains(trimmed)
-      }
+        var result = (selectedFilter == .all) ? allJobs : allJobs.filter { $0.status == selectedFilter.rawValue }
+        
+        if requireCoverLetter{
+            result = result.filter{$0.isCoverLetter}
+        }
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            result = result.filter{ job in
+                switch searchScope {
+                case .general:
+                    return job.companyName.localizedCaseInsensitiveContains(trimmed) ||
+                           job.jobName.localizedCaseInsensitiveContains(trimmed) ||
+                           job.location.localizedCaseInsensitiveContains(trimmed)
+                case .description:
+                    return job.jobDescription.localizedCaseInsensitiveContains(trimmed)
+                case .extraInfo:
+                    return job.extraInfo.localizedCaseInsensitiveContains(trimmed)
+                }
+            }
+        }
+        
+        return result
+    }
+    
+    private var pinnedJobs: [Jobs] {
+        filteredJobs.filter { $0.isPinned }
     }
     
     private var groupedJobs: [(Date, [Jobs])] {
@@ -69,9 +99,13 @@ struct ContentView: View {
                 topBar
                 searchBar
                 
-                
                 ScrollView {
                     LazyVStack(spacing: 5, pinnedViews: [.sectionHeaders]) {
+                        
+                        if !pinnedJobs.isEmpty {
+                            pinnedJobsSection
+                        }
+
                         ForEach(groupedJobs, id: \.0) { date, jobs in
                             Section {
                                 ForEach(jobs) { job in
@@ -79,11 +113,7 @@ struct ContentView: View {
                                         jobRow(job)
                                     }
                                     .buttonStyle(PlainButtonStyle())
-                                    .contextMenu {
-                                        Button(role: .destructive) { deleteJob(job) } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
+                                    .contextMenu { contextMenuItems(for: job) }
                                 }
                             } header: {
                                 headerView(for: date, count: jobs.count)
@@ -139,11 +169,129 @@ struct ContentView: View {
         
     }
     
+    private var pinnedJobsSection: some View {
+        VStack(alignment: .leading) {
+            // Collapsable Header
+            Button(action: togglePinnedSection) {
+                HStack {
+                    Text("Pinned")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.secondary)
+                    
+                    Image(systemName: isPinnedExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.symbolEffect(.replace)) // Smooth icon swap
+                    
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 4) 
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            
+            
+            // The conditionally visible list
+            if isPinnedExpanded {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(pinnedJobs) { job in
+                            NavigationLink(destination: JobDetailView(job: job)) {
+                                pinnedJobCard(job)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu { contextMenuItems(for: job) }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            Divider().padding(.vertical, 8)
+        }
+    }
+    
+    @ViewBuilder
+    private func contextMenuItems(for job: Jobs) -> some View {
+        Button { togglePin(for: job) } label: {
+            Label(job.isPinned ? "Unpin" : "Pin", systemImage: job.isPinned ? "pin.slash" : "pin")
+        }
+        Button(role: .destructive) { deleteJob(job) } label: {
+            Label("Delete", systemImage: "trash")
+        }
+    }
+    
+    private func pinnedJobCard(_ job: Jobs) -> some View {
+        let statusColor = getColor(job: job)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Circle()
+                    .fill(statusColor.opacity(0.2))
+                    .frame(width: 30, height: 30)
+                    .overlay(Image(systemName: "briefcase.fill").foregroundStyle(statusColor).font(.caption))
+                Spacer()
+                Image(systemName: "pin.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+            
+            Text(job.companyName)
+                .font(.headline)
+                .lineLimit(1)
+            Text(job.jobName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding()
+        .frame(width: 160, height: 100)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(nsColor: .windowBackgroundColor))
+                .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
+    }
+    
     private var searchBar: some View{
         HStack {
-              Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-              TextField("Search company, title, or location", text: $searchText)
-                  .textFieldStyle(.plain)
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField("Search company, title, or location", text: $searchText)
+                .textFieldStyle(.plain)
+            Spacer()
+            if !searchText.isEmpty{
+                Button(action: {searchText = ""}) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            Divider().frame(height: 15).padding(.horizontal, 4)
+                // Advanced Filters Menu
+                Menu {
+                    Toggle(isOn: $requireCoverLetter) {
+                        Label("Has Cover Letter", systemImage: "doc.text.fill")
+                    }
+                    
+                    Divider()
+                    
+                    Picker("Search Scope", selection: $searchScope) {
+                        ForEach(SearchScope.allCases) { scope in
+                            Text(scope.rawValue).tag(scope)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle\(requireCoverLetter ? ".fill" : "")")
+                        .foregroundStyle(requireCoverLetter ? .blue : .secondary)
+                }
+                .menuIndicator(.hidden)
+            
           }
           .padding(.horizontal)
           .padding(.vertical, 8)
@@ -249,6 +397,16 @@ struct ContentView: View {
     
     private func addJob() {
         showingAddJob = true
+    }
+    
+    private func togglePinnedSection() {
+        withAnimation(.snappy) {
+            isPinnedExpanded.toggle()
+        }
+    }
+    
+    private func togglePin(for job: Jobs) {
+        job.isPinned.toggle()
     }
 }
 

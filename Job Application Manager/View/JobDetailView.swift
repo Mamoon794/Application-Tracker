@@ -65,15 +65,6 @@ struct JobDetailView: View {
                     }
                     .pickerStyle(.menu)
                     .frame(width: 200)
-                    .onChange(of: job.status) { oldValue, newValue in
-                        Task {
-#if os(macOS)
-                            do {
-                                try await runChangeStatusScript(company: job.companyName, jobTitle: job.jobName, location: job.location,  oldStatus: oldValue, newStatus: newValue)
-                            }#endif
-                            
-                        }
-                    }
                     
                     // Only show if the status is "Interviewing"
                     if job.status == "Interviewing" {

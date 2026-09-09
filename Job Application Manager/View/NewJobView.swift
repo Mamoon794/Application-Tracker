@@ -112,10 +112,6 @@ struct NewJobView: View {
         modelContext.insert(newJob)
         Task {
             await generateSummary(for: newJob)
-            #if os(macOS)
-            do {
-                try await runSaveScript(company: companyName, jobTitle: jobName, site: siteURL, location: location, coverLetter: isCoverLetter, summary: newJob.summary, extraInfo: extraInfo)
-            }#endif
         }
         
         // 3. Dismiss

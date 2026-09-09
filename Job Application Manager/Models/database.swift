@@ -44,6 +44,7 @@ final class Jobs {
     var interviewDate: Date = Date()
     var extraInfo: String = ""
     var fakePhone: Bool = false
+    var isPinned: Bool = false
     
     @Relationship(deleteRule: .cascade, inverse: \InterviewQuestion.job)
         var questions: [InterviewQuestion]? = []
