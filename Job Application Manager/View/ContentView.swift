@@ -154,17 +154,21 @@ struct ContentView: View {
             .fixedSize()
             Spacer()
             Picker("Filter", selection: $selectedFilter) {
-                ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Filter.allCases) { Text($0.rawValue).tag($0)
+                    }
             }
             .pickerStyle(.segmented)
-            .frame(maxWidth: 400)
             
+            
+    
             Button(action: addJob) {
                 Image(systemName: "plus")
             }
             .buttonStyle(.borderedProminent)
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.thinMaterial)
         .background(.thinMaterial)
         
     }

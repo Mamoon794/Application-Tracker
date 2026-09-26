@@ -19,6 +19,11 @@ struct NewJobView: View {
     @State private var extraInfo: String = ""
     @State private var fakePhone = false
     
+    @State private var isPresentingJSONImport = false
+    @State private var jsonInput: String = ""
+    @State private var showImportErrorAlert = false
+    @State private var importErrorMessage: String = ""
+    
     
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -26,6 +31,14 @@ struct NewJobView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Button {
+                        isPresentingJSONImport = true
+                    } label: {
+                        Label("Import from JSON", systemImage: "square.and.arrow.down")
+                    }
+                }
+                
                 Section {
                     rowInput("Company", text: $companyName)
                     rowInput("Job Title", text: $jobName)
@@ -56,7 +69,51 @@ struct NewJobView: View {
                 }
             }
             .lineSpacing(3)
-        }.padding()
+        }
+        .alert("Import Failed", isPresented: $showImportErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(importErrorMessage)
+        }
+        .sheet(isPresented: $isPresentingJSONImport) {
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Paste a JSON object with keys \"title\", \"description\", \"location\", and \"url\". Optionally include \"company\" to populate Company. Smart quotes will be normalized automatically.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $jsonInput)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 200)
+                        .overlay(alignment: .topLeading) {
+                            if jsonInput.isEmpty {
+                                Text("{\"company\":\"Acme Corp\",\"title\":\"Senior iOS Engineer\",\"description\":\"...\",\"location\":\"Remote\",\"url\":\"https://example.com\"}")
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.top, 8)
+                            }
+                        }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.2))
+                        )
+                }
+                .padding()
+                .navigationTitle("Import JSON")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            isPresentingJSONImport = false
+                            jsonInput = ""
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Import") {
+                            importJSON()
+                        }
+                        .fontWeight(.bold)
+                    }
+                }
+            }
+        }
+        .padding()
     }
 
     // MARK: - Separated UI Components
@@ -117,8 +174,48 @@ struct NewJobView: View {
         // 3. Dismiss
         dismiss()
     }
+    
+    private func importJSON() {
+        struct JobImport: Decodable {
+            let company: String?
+            let title: String
+            let description: String
+            let location: String
+            let url: String
+        }
+        do {
+            // Normalize smart quotes and similar characters to standard quotes before decoding
+            let sanitizedInput = jsonInput
+                .replacingOccurrences(of: "\u{201C}", with: "\"") // left double smart quote
+                .replacingOccurrences(of: "\u{201D}", with: "\"") // right double smart quote
+                .replacingOccurrences(of: "\u{201E}", with: "\"") // double low-9 quote
+                .replacingOccurrences(of: "\u{201F}", with: "\"") // double high-reversed-9 quote
+                .replacingOccurrences(of: "\u{2033}", with: "\"") // double prime
+                .replacingOccurrences(of: "\u{2018}", with: "'")   // left single smart quote
+                .replacingOccurrences(of: "\u{2019}", with: "'")   // right single smart quote
+                .replacingOccurrences(of: "\u{2032}", with: "'")   // prime
+
+            let data = Data(sanitizedInput.utf8)
+            let job = try JSONDecoder().decode(JobImport.self, from: data)
+
+            // Populate fields
+            if let company = job.company { self.companyName = company }
+            self.jobName = job.title
+            self.jobDescription = job.description
+            self.location = job.location
+            self.siteURL = job.url
+
+            // Dismiss sheet and clear input
+            self.isPresentingJSONImport = false
+            self.jsonInput = ""
+        } catch {
+            self.importErrorMessage = "Please provide valid JSON with keys \"title\", \"description\", \"location\", and \"url\".\n\nError: \(error.localizedDescription)"
+            self.showImportErrorAlert = true
+        }
+    }
 }
 
 #Preview {
     NewJobView()
 }
+
